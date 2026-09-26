@@ -1,0 +1,26 @@
+{
+  "name": "txt-cli",
+  "version": "0.1.0",
+  "description": "Cliente de terminal para txt.421.news: secciones, vista de lista y publicaciones.",
+  "type": "module",
+  "bin": {
+    "txt": "bin/txt.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node bin/txt.js",
+    "test": "node --test"
+  },
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "htm": "^3.1.1",
+    "ink": "^7.1.1",
+    "react": "^19.3.0",
+    "string-width": "^8.3.0"
+  },
+  "devDependencies": {
+    "ink-testing-library": "^4.0.0"
+  }
+}

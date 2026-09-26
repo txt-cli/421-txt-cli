@@ -1,0 +1,339 @@
+TXT · FORO DE TEXTO DE 421
+==========================
+Solo texto, pseudoanónimo y moderado. Para publicar o responder, entrá desde
+la web.
+
+  Portada     https://txt.421.news/index.txt
+  Tecnología  https://txt.421.news/b/tecnologia.txt
+  Cultura     https://txt.421.news/b/cultura.txt
+  Música      https://txt.421.news/b/musica.txt
+  Juegos      https://txt.421.news/b/juegos.txt
+  Vida real   https://txt.421.news/b/vida-real.txt
+  Normas      https://txt.421.news/normas.txt
+
+··············································································
+
+Fotos de perfil
+===============
+Sección Tecnología
+  → https://txt.421.news/b/tecnologia.txt
+Responder en la web
+  → https://txt.421.news/h/588
+
+··············································································
+
+No.4797 · ID UC1uqVvA · OP · 25/9/26, 9:04 p. m.
+------------------------------------------------
+  Admin podríamos transformar los ID aleatorios en fotos de perfil asi es mas
+  facil identificarnos en una misma publicación.
+  Algo como https://www.dicebear.com/playground/
+  Pero podemos hacer algo propio.
+  Si quieren armo un issue y un PR con eso.
+
+  >>1
+Respuestas: >>5385 >>5441
+
+··············································································
+
+No.4802 · ID dEVMLm79 · 25/9/26, 9:07 p. m.
+-------------------------------------------
+  Como les encanta a los gordos ser reconocido
+Respuestas: >>4814
+
+··············································································
+
+No.4804 · ID UC1uqVvA · OP · 25/9/26, 9:07 p. m.
+------------------------------------------------
+  Podria hacer que se hagan onda patrones abstractos ascii si no queremos que
+  sean caritas
+
+··············································································
+
+No.4806 · ID FVOsBblJ · 25/9/26, 9:08 p. m.
+-------------------------------------------
+  Gordo FBI toca de aca
+
+··············································································
+
+No.4808 · ID PnaS0CuY · 25/9/26, 9:08 p. m.
+-------------------------------------------
+  el chiste es el anonimato gordo.
+
+··············································································
+
+No.4809 · ID HvwIlnAf · 25/9/26, 9:08 p. m.
+-------------------------------------------
+  eliminenle los ids
+Respuestas: >>4827
+
+··············································································
+
+No.4813 · ID 08hWx8MX · 25/9/26, 9:09 p. m.
+-------------------------------------------
+  Dejen de joder. Lean. Contesten y cortenla
+Respuestas: >>4834
+
+··············································································
+
+No.4814 · ID UC1uqVvA · OP · 25/9/26, 9:09 p. m.
+------------------------------------------------
+  >>4802
+  Nono, hoy los ID de un usuario se mantienen en la misma publicación, entre
+  publicaciones cambia. Esto te permite poder conversar con la gente, no ser
+  reconocido a nivel transversal.
+  Lo que digo seria igual a eso nomas que con una "foto de perfi". Generada
+  aleatoriamente a partir del ID, como en la seed del ejemplo que di
+Respuestas: >>4820
+
+··············································································
+
+No.4820 · ID FVOsBblJ · 25/9/26, 9:11 p. m.
+-------------------------------------------
+  >>4814
+  se llama txt por algo
+Respuestas: >>4823
+
+··············································································
+
+No.4823 · ID UC1uqVvA · OP · 25/9/26, 9:11 p. m.
+------------------------------------------------
+  >>4820
+  Se puede hacer con ascii
+
+··············································································
+
+No.4827 · ID UC1uqVvA · OP · 25/9/26, 9:12 p. m.
+------------------------------------------------
+  >>4809
+  Gordo los id son aleatorios, no te identifican
+Respuestas: >>4831
+
+··············································································
+
+No.4830 · ID QqAlMdqv · 25/9/26, 9:13 p. m.
+-------------------------------------------
+  en twitter podes tener foto de perfil, anda tranquilo maquina nadie te
+  detiene
+Respuestas: >>4833
+
+··············································································
+
+No.4831 · ID HvwIlnAf · 25/9/26, 9:13 p. m.
+-------------------------------------------
+  >>4827
+  en un post si, creo, en todo caso roganovich escribe para el orto
+Respuestas: >>4832
+
+··············································································
+
+No.4832 · ID UC1uqVvA · OP · 25/9/26, 9:14 p. m.
+------------------------------------------------
+  >>4831
+  Tal cual
+
+··············································································
+
+No.4833 · ID UC1uqVvA · OP · 25/9/26, 9:15 p. m.
+------------------------------------------------
+  >>4830
+  Gordi aprende a leer si sos tan txtero tkm
+Respuestas: >>4847
+
+··············································································
+
+No.4834 · ID j0mdXxGV · 25/9/26, 9:15 p. m.
+-------------------------------------------
+  >>4813
+
+  Tanto cuesta entender esto, loco? Totalmente bogidos por el algoritmo
+
+··············································································
+
+No.4837 · ID o7pwdxH4 · 25/9/26, 9:15 p. m.
+-------------------------------------------
+  Estoy en contra de una foto de perfil. Esto debe mantenerse en solo texto.
+
+  A favor de una palabra legible en lugar de un id difícil de leer.
+Respuestas: >>4842 >>4845
+
+··············································································
+
+No.4841 · ID ryrI1gwh · 25/9/26, 9:17 p. m.
+-------------------------------------------
+  Hola, no
+
+  Atte. La Moderación
+
+··············································································
+
+No.4842 · ID 08hWx8MX · 25/9/26, 9:17 p. m.
+-------------------------------------------
+  >>4837
+  Yo ni veo los id.
+
+··············································································
+
+No.4845 · ID UC1uqVvA · OP · 25/9/26, 9:18 p. m.
+------------------------------------------------
+  >>4837
+  Banco, sisi foto de perfil era una forma de decir.
+  Puede ser también onda un codigo de colores en las letras. Algo que haga mas
+  fscil reconocer el id para charlar sin tener que comparar letra por letra.
+  Lo mismo que el OP, es bueno saber quien es el op en los comentarios, eso no
+  significa que pierde el anonimato gordos
+
+··············································································
+
+No.4847 · ID QqAlMdqv · 25/9/26, 9:18 p. m.
+-------------------------------------------
+  >>4833
+  tambien tkm, perdón, no se leer
+Respuestas: >>4854
+
+··············································································
+
+No.4849 · ID 5psOclKd · 25/9/26, 9:19 p. m.
+-------------------------------------------
+  Ya lo dije en otra. Si quieren ser identificada busquen formas, en chan lo
+  hacian con firmas criptograficas, facilmente verificables. No es beneficioso
+  tener muchos reconocidos. Firmen y a otra cosa.
+  __Lexotanil__
+Respuestas: >>4856 >>4859
+
+··············································································
+
+No.4851 · ID 5r0re5R9 · 25/9/26, 9:19 p. m.
+-------------------------------------------
+  no
+
+··············································································
+
+No.4853 · ID 4QEGDiXG · 25/9/26, 9:19 p. m.
+-------------------------------------------
+  El gordo fama
+
+··············································································
+
+No.4854 · ID UC1uqVvA · OP · 25/9/26, 9:20 p. m.
+------------------------------------------------
+  >>4847
+  Ahora que vuelvo a leer mi txt es medio baitero, pero si entran a la página
+  se entiende a lo que me refería. Usar el id aleatorio de cada post para
+  hacer una imagen aleatoria.
+
+··············································································
+
+No.4856 · ID UC1uqVvA · OP · 25/9/26, 9:20 p. m.
+------------------------------------------------
+  >>4849
+  Gordo pero entra al link, no digo algo identifiable
+
+··············································································
+
+No.4857 · ID dEVMLm79 · 25/9/26, 9:21 p. m.
+-------------------------------------------
+  En algunos image board, si queres hablar algo mas o menos serio, cuando
+  creas un post podes agregarle idunico a algunas publicaciones
+Respuestas: >>4861
+
+··············································································
+
+No.4859 · ID o7pwdxH4 · 25/9/26, 9:22 p. m.
+-------------------------------------------
+  >>4849
+  Lexo mirá donde te vengo a encontrar!!
+  #~herni~#
+
+··············································································
+
+No.4861 · ID UC1uqVvA · OP · 25/9/26, 9:22 p. m.
+------------------------------------------------
+  >>4857
+  Aca ya tenemos id unico. Arriba de tu comentario dice "ID dEVMLm79" ese es
+  tu nombre en este post. En otros posts cambia.
+  Yo digo usar ese id como seed para que sea mas facil conversar en cada post.
+  Si un gordo comenta mas de una vez se vuelve confuso leer
+
+··············································································
+
+No.4883 · ID d0T66OKU · 25/9/26, 9:35 p. m.
+-------------------------------------------
+  Ya quieren cagar la verga loko, jatejode.
+
+··············································································
+
+No.4888 · ID VWKHZ_5X · 25/9/26, 9:36 p. m.
+-------------------------------------------
+  No wachin no es twitter esto
+
+··············································································
+
+No.4927 · ID E625QgAX · 25/9/26, 9:57 p. m.
+-------------------------------------------
+  Idea denegada, no vuelvas a proponer nada
+
+  -Ruocco
+
+··············································································
+
+No.4932 · ID HvwIlnAf · 25/9/26, 10:01 p. m.
+--------------------------------------------
+  yo te entendí, los de arriba son muy bobis. banco, o por lo menos que tenga
+  un resaltado, un color, algo.
+Respuestas: >>4960
+
+··············································································
+
+No.4960 · ID UC1uqVvA · OP · 25/9/26, 10:13 p. m.
+-------------------------------------------------
+  >>4932
+  Gracias tkm
+
+··············································································
+
+No.5269 · ID XHoBj-Cd · sage · 26/9/26, 12:18 a. m.
+---------------------------------------------------
+  la idea justamente es no poder identificarnos
+Respuestas: >>5392
+
+··············································································
+
+No.5385 · ID OBGtwB5L · 26/9/26, 12:53 a. m.
+--------------------------------------------
+  >>4797
+  para eso está IG bro
+
+··············································································
+
+No.5392 · ID OBGtwB5L · 26/9/26, 12:54 a. m.
+--------------------------------------------
+  >>5269
+  igual entiendo
+  estamos rotos y hemos llevado la plasticidad neuronal a tal punto que el
+  hormigón armado es una contorsionista china del circo de moskú
+
+  TE QUIERO, DECIME ALGO LINN
+
+··············································································
+
+No.5396 · ID piqgT_vn · 26/9/26, 12:56 a. m.
+--------------------------------------------
+  gordo yo leo desde la terminal no me pongas imagenes que me rompes todo
+
+··············································································
+
+No.5441 · ID qpX29V_7 · 26/9/26, 1:16 a. m.
+-------------------------------------------
+  >>4797
+
+  +--^----------,--------,-----,--------^-,
+  | ||||||||| `--------' | O
+  `+---------------------------^----------|
+  `\_,---------,---------,--------------'
+  / XXXXXX /'| /'
+  / XXXXXX / `\ /'
+  / XXXXXX /`-------'
+  / XXXXXX /
+  / XXXXXX /
+  (________(
+  `------'
