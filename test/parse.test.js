@@ -13,6 +13,7 @@ test('portada: 60 publicaciones con sección, asunto, respuestas y paginación',
     id: 588,
     asunto: 'Fotos de perfil',
     board: 'tecnologia',
+    fijada: false,
     respuestas: 38,
     fecha: '26/9/26, 1:16 a. m.',
     extracto:
@@ -100,4 +101,25 @@ test('desenvolver: une solo los cortes que hizo el servidor', () => {
 
 test('un texto que no es de txt da error', () => {
   assert.throws(() => parseHilo('No encontrado.\n'), /No parece/);
+});
+
+// As the site serves it (txt.421.news/index.txt, 2026-10-03): "[Fijada]" goes before the section.
+test('publicación fijada: [Fijada] sale del asunto y la sección se sigue leyendo', () => {
+  const texto = `Portada
+=======
+
+[Fijada] [Cultura] Lean a Baudrillard, gordos (30 respuestas)
+  → https://txt.421.news/h/1675.txt
+  3/10/26, 2:50 a. m. · 100% avive.
+
+[Cultura] Banco al fijada en txt (0 respuestas)
+  → https://txt.421.news/h/1911.txt
+  2/10/26, 9:54 p. m. · Y que sea a puro dedo del Admin
+`;
+  const [fijada, otra] = parseListado(texto).hilos;
+  assert.deepEqual(
+    { id: fijada.id, asunto: fijada.asunto, board: fijada.board, fijada: fijada.fijada, respuestas: fijada.respuestas },
+    { id: 1675, asunto: 'Lean a Baudrillard, gordos', board: 'cultura', fijada: true, respuestas: 30 },
+  );
+  assert.deepEqual({ asunto: otra.asunto, fijada: otra.fijada }, { asunto: 'Banco al fijada en txt', fijada: false });
 });

@@ -5,7 +5,7 @@ import React from 'react';
 import { render } from 'ink-testing-library';
 import { App } from '../src/app.js';
 import { crearCliente } from '../src/api.js';
-import { armarLista, envolver } from '../src/layout.js';
+import { armarLista, armarPost, envolver } from '../src/layout.js';
 import { parseHilo, parseListado } from '../src/parse.js';
 
 const fixture = (f) => fs.readFileSync(new URL(`./fixtures/${f}`, import.meta.url), 'utf8');
@@ -120,4 +120,18 @@ test('a abre el archivo de la sección', async () => {
   assert.ok(pedidos.includes('/b/tecnologia/archivo.txt'));
   assert.match(frame, /TECNOLOGÍA · ARCHIVO/);
   app.unmount();
+});
+
+test('armarPost: un mensaje solo, cortado a un máximo de líneas con su borde', () => {
+  const hilo = parseHilo(fixture('hilo.txt'));
+  const texto = (lineas) => lineas.map((l) => l.segs.map((s) => s.t).join(''));
+  const corto = texto(armarPost(hilo.posts[1], { ancho: 60 }));
+  assert.match(corto[1], /No\.4802/);
+  assert.match(corto.at(-1), /^└─+┘$/);
+  const op = texto(armarPost(hilo.posts[0], { ancho: 60, esOp: true, maximo: 5 }));
+  assert.equal(op.length, 5);
+  assert.match(op[0], /OP .*No\.4797/);
+  assert.match(op[3], /^│ … +│$/);
+  assert.match(op[4], /^└─+┘$/);
+  assert.ok([...corto, ...op].every((l) => [...l].length <= 60));
 });

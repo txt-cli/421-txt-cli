@@ -91,6 +91,9 @@ export function parseListado(texto) {
     }
 
     let asunto = titulo.join(' ');
+    // Pinned by a mod: "[Fijada] " goes first, before the section.
+    const fijada = asunto.startsWith('[Fijada] ');
+    if (fijada) asunto = asunto.slice('[Fijada] '.length);
     let board = null;
     const conTablon = asunto.match(/^\[([^\]]+)\] (.*)$/);
     if (conTablon && boardPorNombre(conTablon[1])) {
@@ -109,6 +112,7 @@ export function parseListado(texto) {
       id: Number(id),
       asunto,
       board,
+      fijada,
       respuestas,
       fecha: corte === -1 ? '' : unido.slice(0, corte),
       extracto: corte === -1 ? unido : unido.slice(corte + 3),

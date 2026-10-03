@@ -15,6 +15,7 @@
   },
   "license": "AGPL-3.0-only",
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "htm": "^3.1.1",
     "ink": "^7.1.1",
     "react": "^19.3.0",
