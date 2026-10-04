@@ -230,6 +230,9 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
   const [offset, setOffset] = useState(0);
   const [hiloId, setHiloId] = useState(inicio.hilo ?? null);
   const [offsetHilo, setOffsetHilo] = useState(0);
+  // The message j/k landed on, in a thread: c, i and I act on it. The last few messages can't reach the
+  // top of the screen, so "the one at the top" isn't enough. Scrolling otherwise (↑↓, pages) drops it.
+  const [mensajeSel, setMensajeSel] = useState(null);
   const [ayuda, setAyuda] = useState(false);
   const [recarga, setRecarga] = useState(0);
   // { hiloId, cita, inicial, texto, sage, enviando, error, descartar } while writing a reply.
@@ -421,6 +424,7 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     const ancla = vistaHilo.anclas.find((a) => a.id === destino.postId);
     if (!ancla) return;
     setDestino(null);
+    setMensajeSel(ancla.id);
     setOffsetHilo(acotar(ancla.linea, vistaHilo.lineas.length, alto));
   }, [vistaHilo, destino, hiloId]);
 
@@ -508,7 +512,10 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
 
   const irA = (nuevo) => {
     const o = acotar(nuevo, total, alto);
-    if (enHilo) return setOffsetHilo(o);
+    if (enHilo) {
+      setMensajeSel(null);
+      return setOffsetHilo(o);
+    }
     // The marked entry follows the scroll: the last one whose title is at or above the top.
     const i = Math.max(0, (contenido?.anclas ?? []).findLastIndex((a) => a.linea <= o));
     if (enPantalla) {
@@ -522,8 +529,8 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     const anclas = contenido?.anclas ?? [];
     if (!anclas.length) return;
     if (enHilo) {
-      const actual = anclas.findLastIndex((a) => a.linea <= off);
-      const destino = anclas[Math.max(0, Math.min(anclas.length - 1, actual + dir))];
+      const destino = anclas[Math.max(0, Math.min(anclas.length - 1, indiceEnHilo() + dir))];
+      setMensajeSel(destino.id);
       return setOffsetHilo(acotar(destino.linea, total, alto));
     }
     const nuevo = Math.max(0, Math.min(anclas.length - 1, (enPantalla ? selPantalla : sel) + dir));
@@ -539,6 +546,7 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
   const abrirHilo = (id, postId = null) => {
     setHiloId(id);
     setOffsetHilo(0);
+    setMensajeSel(null);
     setDestino(postId != null ? { hiloId: id, postId } : null);
     const cacheado = hilos.current.get(id)?.hilo;
     if (postId != null && cacheado && !cacheado.posts.some((p) => p.id === postId)) {
@@ -551,6 +559,7 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
   const cerrarHilo = () => {
     setHiloId(null);
     setOffsetHilo(0);
+    setMensajeSel(null);
     setDestino(null);
   };
   const abrirPantalla = (id) => {
@@ -708,10 +717,14 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     if (item) elegir(item);
   };
   // The message at the top of the screen in a thread: the one `c` quotes.
-  const mensajeArriba = () => {
+  // The current message's index among the thread's anchors: the one j/k landed on, or the one at the
+  // top (-1 above the first one: the title; j then goes to the OP).
+  function indiceEnHilo() {
     const anclas = vistaHilo?.anclas ?? [];
-    return anclas[Math.max(0, anclas.findLastIndex((a) => a.linea <= off))]?.id ?? null;
-  };
+    const elegido = mensajeSel != null ? anclas.findIndex((a) => a.id === mensajeSel) : -1;
+    return elegido >= 0 ? elegido : anclas.findLastIndex((a) => a.linea <= off);
+  }
+  const mensajeArriba = () => vistaHilo?.anclas[Math.max(0, indiceEnHilo())]?.id ?? null;
   // i inside a thread: the message at the top (the OP stands for the whole thread, like i in the list).
   // I: everything its author wrote in this thread.
   const ignorarEnHilo = (todoElAutor) => {
@@ -722,6 +735,7 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     const quien = nombres?.get(post.anon) ?? `ID ${post.anon}`;
     if (todoElAutor) {
       if (!post.anon) return setAviso('Ese mensaje no tiene autor para ignorar.');
+      setMensajeSel(null); // its messages move: the current one is the one at the top again
       return alternarIgnorado(`usuario:${hilo.id}-${post.anon}`, {
         si: `Ignorando los mensajes de ${quien} en esta publicación · I para dejar de ignorarlos`,
         no: `Ya no se ignoran los mensajes de ${quien}.`,
@@ -733,6 +747,7 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     if (post.anon && storeIgnorados?.has(`usuario:${hilo.id}-${post.anon}`) && !storeIgnorados.has(`mensaje:${post.id}`)) {
       return setAviso(`No.${post.id} está ignorado porque ignorás a ${quien}: I para dejar de ignorarlo.`);
     }
+    setMensajeSel(null);
     alternarIgnorado(`mensaje:${post.id}`, { si: `No.${post.id} ignorado · i para dejar de ignorarlo`, no: `No.${post.id} sin ignorar.` });
   };
 

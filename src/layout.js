@@ -185,9 +185,9 @@ function tituloHilo(asunto, { ancho, seleccionado, board, fijada = false, guarda
   );
 }
 
-// Red line before the hidden threads, at the bottom of a page.
-function divisoria(n, { ancho }) {
-  const texto = ` ${n === 1 ? '1 publicación oculta' : `${n} publicaciones ocultas`}: ignoradas (i) o filtradas (I) `;
+// Red line with a warning, before what's hidden at the bottom (threads of a page, messages of a thread).
+function divisoria(aviso, { ancho }) {
+  const texto = ` ${aviso} `;
   const rojo = { color: COLOR.error, bold: true };
   if (stringWidth(texto) + 4 > ancho) {
     return [linea(0, [seg('━'.repeat(ancho), rojo)]), ...envolver(texto.trim(), ancho).map((t) => linea(0, [seg(t, rojo)])), linea(0, [])];
@@ -211,7 +211,9 @@ export function armarLista(items, { ancho, seleccionado, conTablon, ignorados = 
     const hiloIgnorado = oculta ?? (ignorados?.hilo(entrada.id) ? 'ignorado' : null);
     // The first hidden one's anchor is the red line: jumping to it shows the warning too.
     anclas.push({ linea: lineas.length, id: entrada.id });
-    if (oculta && !items[n - 1]?.oculta) lineas.push(...divisoria(ocultas, { ancho }));
+    if (oculta && !items[n - 1]?.oculta) {
+      lineas.push(...divisoria(`${ocultas === 1 ? '1 publicación oculta' : `${ocultas} publicaciones ocultas`}: ignoradas (i) o filtradas (I)`, { ancho }));
+    }
     lineas.push(...tituloHilo(entrada.asunto, {
       ancho,
       seleccionado: n === seleccionado,
@@ -297,11 +299,21 @@ export function armarHilo(hilo, { ancho, nombres = null, ignorados = null, fijad
       : null;
   if (estado) lineas.push(linea(0, [seg(estado, { color: COLOR.cita })]));
   lineas.push(linea(0, []));
-  hilo.posts.forEach((p, i) => {
+  // The OP stays first (ignoring it is ignoring the thread). Ignored replies, one by one or by their
+  // author, go to the end, after a red line; the first one's anchor is that line, like in the list.
+  const [op, ...resto] = hilo.posts;
+  const ignorada = (p) => !!ignorados?.mensaje(hilo.id, p);
+  const ocultas = resto.filter(ignorada);
+  const orden = [...(op ? [op] : []), ...resto.filter((p) => !ignorada(p)), ...ocultas];
+  orden.forEach((p, i) => {
+    const esOp = p === op;
     anclas.push({ linea: lineas.length, id: p.id });
-    const ignorado =
-      (i === 0 && ignorados?.hilo(hilo.id)) || ignorados?.mensaje(hilo.id, p) ? 'ignorado' : i === 0 && filtrada ? 'filtrada' : false;
-    lineas.push(...cajaPost({ ...p, esOp: i === 0, nombre: nombres?.get(p.anon) }, { ancho, ignorado, fijada: fijada && i === 0 }));
+    if (p === ocultas[0]) {
+      const n = ocultas.length;
+      lineas.push(...divisoria(`${n === 1 ? '1 mensaje oculto' : `${n} mensajes ocultos`}: ignorados (i) o de autores ignorados (I)`, { ancho }));
+    }
+    const ignorado = (esOp && ignorados?.hilo(hilo.id)) || ignorada(p) ? 'ignorado' : esOp && filtrada ? 'filtrada' : false;
+    lineas.push(...cajaPost({ ...p, esOp, nombre: nombres?.get(p.anon) }, { ancho, ignorado, fijada: fijada && esOp }));
     lineas.push(linea(0, []));
   });
   return { lineas, anclas };

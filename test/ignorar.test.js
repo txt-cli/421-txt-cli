@@ -23,16 +23,21 @@ const ignorando = (...claves) => {
   return { hilo: (id) => c.has(`hilo:${id}`), mensaje: (h, p) => c.has(`mensaje:${p.id}`) || c.has(`usuario:${h}-${p.anon}`) };
 };
 
-test('publicación: un mensaje ignorado es solo su cabecera, con borde gris', () => {
+test('publicación: un mensaje ignorado va al final, después de la línea roja, solo su cabecera y en gris', () => {
   const normal = armarHilo(hilo, { ancho: 80 });
   const { lineas, anclas } = armarHilo(hilo, { ancho: 80, ignorados: ignorando(`mensaje:${segundo.id}`) });
-  const caja = lineas.slice(anclas[1].linea, anclas[2].linea - 1);
-  assert.equal(caja.length, 3);
+  // The same messages, the ignored one last; the OP stays first.
+  assert.deepEqual(anclas.map((a) => a.id), [op.id, ...hilo.posts.slice(2).map((p) => p.id), segundo.id]);
+  // Its anchor is the red line; then a blank line and its 3-line box.
+  const ultima = anclas.at(-1).linea;
+  assert.match(texto(lineas)[ultima], /^━━ 1 mensaje oculto: ignorados \(i\) o de autores ignorados \(I\) ━+$/);
+  const caja = lineas.slice(ultima + 2, ultima + 5);
   assert.match(texto(caja)[1], new RegExp(`· ignorado +No\\.${segundo.id} │$`));
   assert.ok(caja.every((l) => l.segs.some((s) => s.color === COLOR.ignorado)));
-  // The box (plus its blank line) shrinks to 3 lines (plus the blank line).
-  assert.equal(lineas.length, normal.lineas.length - (normal.anclas[2].linea - normal.anclas[1].linea) + 4);
+  // Its box (plus its blank line) shrinks to 3 lines (plus the blank line), plus the red line and its blank.
+  assert.equal(lineas.length, normal.lineas.length - (normal.anclas[2].linea - normal.anclas[1].linea) + 4 + 2);
   assert.ok(!texto(lineas).some((l) => l.includes('Como les encanta')));
+  assert.ok(!texto(normal.lineas).some((l) => l.startsWith('━━')));
 });
 
 test('publicación ignorada: el OP queda en barra gris; usuario ignorado: todos sus mensajes', () => {
@@ -46,6 +51,9 @@ test('publicación ignorada: el OP queda en barra gris; usuario ignorado: todos 
   assert.ok(deUno.length > 1);
   const t = texto(armarHilo(hilo, { ancho: 80, ignorados: ignorando(`usuario:588-${op.anon}`) }).lineas).join('\n');
   for (const p of deUno) assert.match(t, new RegExp(`· ignorado.*No\\.${p.id}`));
+  // The OP stays first (collapsed); the author's replies go after the red line, in their order.
+  const n = deUno.length - 1;
+  assert.match(t, new RegExp(`━━ ${n} mensajes ocultos: ignorados \\(i\\) o de autores ignorados \\(I\\) ━+\\n\\n┌─+┐\\n.*No\\.${deUno[1].id}`));
   assert.equal((t.match(/· ignorado/g) ?? []).length, deUno.length);
 });
 
@@ -80,31 +88,59 @@ async function abrir(inicio) {
   return { app, teclas, ignorados: () => stores('ignorados').keys().sort(), cerrar };
 }
 
+// Keys to reach message `id` from the top (g, then one j per message: the first j lands on the OP),
+// with the thread ordered as it is with these ignored.
+const hasta = (id, ...claves) => {
+  const n = armarHilo(hilo, { ancho: 80, ignorados: ignorando(...claves) }).anclas.findIndex((a) => a.id === id);
+  return ['g', ...Array(n + 1).fill('j')];
+};
+
 test('i / I dentro de una publicación, guardado en el store y reversible', async () => {
   const { teclas, ignorados, cerrar } = await abrir({ hilo: 588 });
   let frame = await teclas('j', 'i'); // the OP: the whole thread
   assert.deepEqual(ignorados(), ['hilo:588']);
   assert.match(frame, /Publicación ignorada/);
 
-  frame = await teclas('j', 'i'); // the second message
+  frame = await teclas('j', 'i'); // the second message: it goes to the end
   assert.deepEqual(ignorados(), ['hilo:588', `mensaje:${segundo.id}`]);
   assert.match(frame, new RegExp(`No\\.${segundo.id} ignorado`));
-
-  frame = await teclas('I'); // its author, in this thread
-  assert.deepEqual(ignorados(), ['hilo:588', `mensaje:${segundo.id}`, `usuario:588-${segundo.anon}`]);
+  // Its place, at the top, is the next one's now: I ignores that one's author.
+  const tercero = hilo.posts[2];
+  frame = await teclas('I');
+  assert.deepEqual(ignorados(), ['hilo:588', `mensaje:${segundo.id}`, `usuario:588-${tercero.anon}`]);
   assert.match(frame, /Ignorando los mensajes de .* en esta publicación/);
 
-  await teclas('i', 'k', 'i', 'j', 'I'); // and back, one by one
+  // And back, one by one: down to them at the end (j selects even what can't reach the top).
+  const todas = ['hilo:588', `mensaje:${segundo.id}`, `usuario:588-${tercero.anon}`];
+  frame = await teclas(...hasta(tercero.id, ...todas));
+  assert.match(frame, new RegExp(`c responder a No\\.${tercero.id}`));
+  await teclas('I');
+  assert.deepEqual(ignorados(), ['hilo:588', `mensaje:${segundo.id}`]);
+  await teclas(...hasta(segundo.id, 'hilo:588', `mensaje:${segundo.id}`), 'i');
+  assert.deepEqual(ignorados(), ['hilo:588']);
+  await teclas('g', 'j', 'i');
   assert.deepEqual(ignorados(), []);
   cerrar();
 });
 
 test('i en un mensaje ignorado por su autor avisa que se deshace con I', async () => {
   const { teclas, ignorados, cerrar } = await abrir({ hilo: 588 });
-  await teclas('j', 'j', 'I');
-  const frame = await teclas('i');
+  await teclas('j', 'j', 'I'); // the OP, then the second message: its author
+  assert.deepEqual(ignorados(), [`usuario:588-${segundo.anon}`]);
+  const frame = await teclas(...hasta(segundo.id, `usuario:588-${segundo.anon}`), 'i');
   assert.match(frame, new RegExp(`No\\.${segundo.id} está ignorado porque ignorás a .*: I para dejar de ignorarlo`));
   assert.deepEqual(ignorados(), [`usuario:588-${segundo.anon}`]);
+  cerrar();
+});
+
+test('j llega a los últimos mensajes aunque no puedan subir arriba de todo; ↑↓ vuelven al de arriba', async () => {
+  const { teclas, cerrar } = await abrir({ hilo: 588 });
+  const ultimo = hilo.posts.at(-1);
+  let frame = await teclas(...hasta(ultimo.id));
+  assert.match(frame, new RegExp(`c responder a No\\.${ultimo.id}`));
+  assert.doesNotMatch(frame.split('\n')[3], new RegExp(`No\\.${ultimo.id}`)); // it isn't at the top
+  frame = await teclas('\u001b[A');
+  assert.doesNotMatch(frame, new RegExp(`c responder a No\\.${ultimo.id}`));
   cerrar();
 });
 
