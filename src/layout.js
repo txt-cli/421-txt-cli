@@ -101,6 +101,7 @@ function recortar(lineas, max) {
 const linea = (sangria, segs, extra = {}) => ({ segs: [espacios(sangria), ...segs], ...extra });
 
 // Header of a post: `izq` on the left, No.N on the right, `ancho` columns.
+// ignorado: false, or why it's collapsed (true → 'ignorado', or a word like 'filtrada').
 function cabecera(post, ancho, { op, ignorado = false }) {
   const acento = ignorado ? COLOR.ignorado : COLOR.verde;
   const izq = [
@@ -108,7 +109,7 @@ function cabecera(post, ancho, { op, ignorado = false }) {
     ...(post.op ? [seg('  '), seg(' OP ', op ? { bg: COLOR.negro, color: acento, bold: true } : { color: acento, bold: true })] : []),
     ...(post.sage ? [seg('  sage', op ? {} : { color: COLOR.tenue })] : []),
     seg(`  ${post.fecha}`),
-    ...(ignorado ? [seg('  · ignorado', { italic: true })] : []),
+    ...(ignorado ? [seg(`  · ${typeof ignorado === 'string' ? ignorado : 'ignorado'}`, { italic: true })] : []),
   ];
   const der = [seg(`No.${post.id}`, { bold: true, ...(op ? {} : { color: acento }) })];
   const hueco = ancho - anchoDe(izq) - anchoDe(der);
@@ -116,7 +117,8 @@ function cabecera(post, ancho, { op, ignorado = false }) {
 }
 
 // A post in a box. The OP carries its header as a filled bar, like on the web.
-// An ignored post is just its header, in grey. A pinned thread's OP goes in amber (grey wins).
+// An ignored post is just its header, in grey (`ignorado` can say why: see cabecera). A pinned
+// thread's OP goes in amber (grey wins).
 function cajaPost(post, { ancho, sangria = 0, resumen = false, cargando = false, ignorado = false, fijada = false }) {
   const out = [];
   const interior = ancho - 4;
@@ -183,18 +185,33 @@ function tituloHilo(asunto, { ancho, seleccionado, board, fijada = false, guarda
   );
 }
 
+// Red line before the hidden threads, at the bottom of a page.
+function divisoria(n, { ancho }) {
+  const texto = ` ${n === 1 ? '1 publicación oculta' : `${n} publicaciones ocultas`}: ignoradas (i) o filtradas (I) `;
+  const rojo = { color: COLOR.error, bold: true };
+  if (stringWidth(texto) + 4 > ancho) {
+    return [linea(0, [seg('━'.repeat(ancho), rojo)]), ...envolver(texto.trim(), ancho).map((t) => linea(0, [seg(t, rojo)])), linea(0, [])];
+  }
+  return [linea(0, [seg('━━', rojo), seg(texto, rojo), seg('━'.repeat(ancho - 2 - stringWidth(texto)), rojo)]), linea(0, [])];
+}
+
 // The list view (?vista=lista): each thread with its opening post, "N omitted" and the last
 // replies. `entrada` comes from the listing; `hilo` (the full thread) may still be loading.
 // `nombres`: the thread's ID → username map, if there is one (see nombres.js).
 // `ignorados`: { hilo(id), mensaje(hiloId, post) } → true for what to show as a header only.
+// An item's `oculta` ('ignorado' | 'filtrada'): the whole thread collapses. Hidden threads go last
+// (the caller orders them); a red line goes before the first one.
 // `guardadas`: Set of the saved threads' ids (★ before their title).
 export function armarLista(items, { ancho, seleccionado, conTablon, ignorados = null, guardadas = null }) {
   const lineas = [];
   const anclas = [];
-  items.forEach(({ entrada, hilo, error, nombres }, n) => {
+  const ocultas = items.filter((i) => i.oculta).length;
+  items.forEach(({ entrada, hilo, error, nombres, oculta }, n) => {
     const nombre = (p) => ({ ...p, nombre: nombres?.get(p.anon) });
-    const hiloIgnorado = !!ignorados?.hilo(entrada.id);
+    const hiloIgnorado = oculta ?? (ignorados?.hilo(entrada.id) ? 'ignorado' : null);
+    // The first hidden one's anchor is the red line: jumping to it shows the warning too.
     anclas.push({ linea: lineas.length, id: entrada.id });
+    if (oculta && !items[n - 1]?.oculta) lineas.push(...divisoria(ocultas, { ancho }));
     lineas.push(...tituloHilo(entrada.asunto, {
       ancho,
       seleccionado: n === seleccionado,
@@ -216,7 +233,7 @@ export function armarLista(items, { ancho, seleccionado, conTablon, ignorados = 
     }
     if (hiloIgnorado) {
       // Ignored thread: the title and the OP's header, nothing else.
-      lineas.push(...cajaPost(nombre(op), { ancho, ignorado: true }));
+      lineas.push(...cajaPost(nombre(op), { ancho, ignorado: hiloIgnorado }));
       lineas.push(linea(0, [seg('╌'.repeat(ancho), { color: COLOR.tenue })]));
       lineas.push(linea(0, []));
       return;
@@ -264,8 +281,9 @@ export function armarPost(post, { ancho, esOp = false, maximo = Infinity }) {
 // nombres: Map of anonymous ID → username to show instead of the ID (see nombres.js).
 // ignorados: like in armarLista; an ignored thread shows its OP as a header only.
 // fijada: the thread is pinned (the .txt thread doesn't say; it comes from a listing).
-// guardada: it's in Guardados (★ before the title).
-export function armarHilo(hilo, { ancho, nombres = null, ignorados = null, fijada = false, guardada = false }) {
+// guardada: it's in Guardados (★ before the title). filtrada: it matches an ignore filter (its OP
+// collapses, like an ignored thread's).
+export function armarHilo(hilo, { ancho, nombres = null, ignorados = null, fijada = false, guardada = false, filtrada = false }) {
   const lineas = [];
   const anclas = [];
   lineas.push(linea(0, [seg(`← ${nombreTablon(hilo.board)}`, { color: COLOR.tenue })]));
@@ -281,7 +299,8 @@ export function armarHilo(hilo, { ancho, nombres = null, ignorados = null, fijad
   lineas.push(linea(0, []));
   hilo.posts.forEach((p, i) => {
     anclas.push({ linea: lineas.length, id: p.id });
-    const ignorado = !!ignorados && ((i === 0 && ignorados.hilo(hilo.id)) || ignorados.mensaje(hilo.id, p));
+    const ignorado =
+      (i === 0 && ignorados?.hilo(hilo.id)) || ignorados?.mensaje(hilo.id, p) ? 'ignorado' : i === 0 && filtrada ? 'filtrada' : false;
     lineas.push(...cajaPost({ ...p, esOp: i === 0, nombre: nombres?.get(p.anon) }, { ancho, ignorado, fijada: fijada && i === 0 }));
     lineas.push(linea(0, []));
   });
@@ -394,11 +413,13 @@ export function armarDocumento({ titulo, parrafos }, { ancho }) {
 
 // /buscar: the messages that match, with the words found highlighted. Anchors open each one.
 const LINEAS_FRAGMENTO = 3;
-export function armarBusqueda({ texto, total, resultados, pagina, paginas }, { ancho, seleccionado }) {
+// `ocultos`: results of this page left out (ignored, or matching a filter).
+export function armarBusqueda({ texto, total, resultados, pagina, paginas, ocultos = 0 }, { ancho, seleccionado }) {
   const lineas = [];
   const anclas = [];
+  const sinMostrar = ocultos ? ` ${ocultos === 1 ? 'Uno oculto' : `${ocultos} ocultos`} en esta página: ignorados o filtrados (I).` : '';
   const resumen = total
-    ? `${total} ${total === 1 ? 'resultado' : 'resultados'} para «${texto}», incluido el archivo${paginas > 1 ? ` · página ${pagina} de ${paginas}` : ''}.`
+    ? `${total} ${total === 1 ? 'resultado' : 'resultados'} para «${texto}», incluido el archivo${paginas > 1 ? ` · página ${pagina} de ${paginas}` : ''}.${sinMostrar}`
     : `No encontré nada con «${texto}».`;
   for (const t of envolver(resumen, ancho)) lineas.push(linea(0, [seg(t, { color: COLOR.tenue })]));
   lineas.push(linea(0, []));

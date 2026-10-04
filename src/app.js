@@ -4,6 +4,7 @@ import { Box, Text, useApp, useInput, useWindowSize } from 'ink';
 import { BOARDS } from './parse.js';
 import { MAX_CUERPO } from './api.js';
 import { COLOR, armarBusqueda, armarDocumento, armarGuardados, armarHilo, armarLista, armarPost, armarRespuestas, envolver } from './layout.js';
+import { compilarFiltros, coincide } from './filtros.js';
 import { nombresDelHilo } from './nombres.js';
 
 const h = htm.bind(React.createElement);
@@ -46,7 +47,7 @@ const AYUDA = [
   ['s', 'en una publicación (o en Guardados): guardarla / sacarla de Guardados'],
   ['c / C', 'en una publicación: responder citando el mensaje de arriba / sin citar'],
   ['i', 'ignorar (o dejar de ignorar) la publicación marcada; adentro, el mensaje de arriba'],
-  ['I', 'en una publicación: ignorar todos los mensajes del autor del mensaje de arriba'],
+  ['I', 'en una publicación: ignorar al autor del mensaje de arriba; afuera: filtros para ocultar publicaciones'],
   ['] / [   n/p', 'página siguiente / anterior'],
   ['a', 'archivo de la sección (y volver)'],
   ['r', 'recargar'],
@@ -102,6 +103,60 @@ function Menu({ items, sel, novedades, columnas }) {
     borderStyle="single"
     borderColor=${COLOR.verde}
     backgroundColor=${FONDO_MENU}>${filas}<//>`;
+}
+
+// The ignore filters popup: a textarea, one regex per line. Lines that don't compile get a ✗ and,
+// with the cursor on them, the reason. Long lists scroll with the cursor; so does a long line.
+function EditorFiltros({ editor, columnas, filas }) {
+  const ancho = Math.min(columnas - 4, 78);
+  const interior = ancho - 4;
+  const { errores } = compilarFiltros(editor.lineas);
+  const visibles = Math.max(3, filas - 16);
+  const desde = Math.max(0, Math.min(editor.fila - Math.floor(visibles / 2), editor.lineas.length - visibles));
+  const ayuda = envolver(
+    'Una expresión regular por línea. Se buscan en el título y en el resumen de cada publicación, sin distinguir mayúsculas ni acentos. Las que coinciden quedan abajo de todo, ocultas.',
+    interior,
+  );
+  const fila = (texto, i) => {
+    const chars = Array.from(texto);
+    const marca = errores.has(i)
+      ? h`<${Text} color=${COLOR.error} bold>✗ <//>`
+      : h`<${Text} color=${COLOR.tenue}>${chars.length ? '› ' : '  '}<//>`;
+    if (i !== editor.fila) {
+      return h`<${Text} key=${i} wrap="truncate" backgroundColor=${FONDO_MENU}>${marca}<${Text} color=${errores.has(i) ? COLOR.error : COLOR.texto}>${texto || ' '}<//><//>`;
+    }
+    // The cursor's line: a window that keeps the cursor in view.
+    const inicio = Math.max(0, editor.col - (interior - 4));
+    const antes = chars.slice(inicio, editor.col).join('');
+    const bajo = chars[editor.col] ?? ' ';
+    const despues = chars.slice(editor.col + 1).join('');
+    return h`<${Text} key=${i} wrap="truncate" backgroundColor=${FONDO_MENU}>${marca}<${Text} color=${COLOR.texto}>${antes}<//><${Text} color=${COLOR.negro} backgroundColor=${COLOR.verde}>${bajo}<//><${Text} color=${COLOR.texto}>${despues}<//><//>`;
+  };
+  const errorAca = errores.get(editor.fila);
+  const pie = errorAca
+    ? h`<${Text} color=${COLOR.error}>Línea ${editor.fila + 1}: ${errorAca}. No se usa hasta que la corrijas.<//>`
+    : errores.size
+      ? h`<${Text} color=${COLOR.error}>${errores.size === 1 ? 'Una línea tiene' : `${errores.size} líneas tienen`} error (✗): no se usan.<//>`
+      : h`<${Text} color=${COLOR.tenue}>${`${compilarFiltros(editor.lineas).reglas.length} filtros`}<//>`;
+  return h`<${Box}
+    position="absolute"
+    marginTop=${3}
+    marginLeft=${Math.max(0, Math.floor((columnas - ancho) / 2))}
+    width=${ancho}
+    flexDirection="column"
+    borderStyle="round"
+    borderColor=${COLOR.verde}
+    backgroundColor=${FONDO_MENU}
+    paddingX=${1}>
+    <${Text} color=${COLOR.verde} bold>Filtros para ocultar publicaciones<//>
+    ${ayuda.map((t, i) => h`<${Text} key=${`a${i}`} color=${COLOR.tenue}>${t}<//>`)}
+    <${Text}> <//>
+    ${desde > 0 ? h`<${Text} color=${COLOR.tenue}>  ↑ ${desde} más<//>` : ''}
+    ${editor.lineas.slice(desde, desde + visibles).map((t, i) => fila(t, desde + i))}
+    ${desde + visibles < editor.lineas.length ? h`<${Text} color=${COLOR.tenue}>  ↓ ${editor.lineas.length - desde - visibles} más<//>` : ''}
+    <${Text}> <//>
+    ${pie}
+  <//>`;
 }
 
 // Below the sections, above the posts. With focus, what's typed goes here (▮ is the cursor).
@@ -223,6 +278,20 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     }
   };
 
+  // Ignore filters: regexes (one per line) for the title and summary of each thread, in the
+  // `filtros` store. Without stores they only last while the app is open.
+  const leerFiltros = (st) => {
+    try {
+      return st?.('filtros').get('publicaciones') ?? [];
+    } catch {
+      return [];
+    }
+  };
+  const [filtros, setFiltros] = useState(() => leerFiltros(storesIniciales));
+  const { reglas } = useMemo(() => compilarFiltros(filtros), [filtros]);
+  // { lineas, fila, col, original, descartar } while the filters popup is open.
+  const [editorFiltros, setEditorFiltros] = useState(null);
+
   // Loaded data, by key. `version` re-renders when something arrives.
   const listados = useRef(new Map());
   const hilos = useRef(new Map());
@@ -285,10 +354,17 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
   const estadoListado = listados.current.get(claveListado) ?? { cargando: true };
   const datos = estadoListado.datos;
   const desde = (pagina * POR_PAGINA) % POR_LISTADO;
-  const entradas = datos?.hilos.slice(desde, desde + POR_PAGINA) ?? [];
+  // A thread is hidden if it's ignored (i) or matches a filter (I): those go to the bottom of the page.
+  const motivoOculta = (e) => (ignorados?.hilo(e.id) ? 'ignorado' : coincide(reglas, e.asunto, e.extracto) ? 'filtrada' : null);
+  const enPagina = (datos?.hilos.slice(desde, desde + POR_PAGINA) ?? []).map((entrada) => ({ entrada, oculta: motivoOculta(entrada) }));
+  const ordenadas = [...enPagina.filter((x) => !x.oculta), ...enPagina.filter((x) => x.oculta)];
+  const entradas = ordenadas.map((x) => x.entrada);
   // Usernames for a loaded thread, once per load (the list and the thread view share them).
   // If the store can't be read or written, the IDs show instead.
   const nombresPorHilo = useMemo(() => new WeakMap(), [stores]);
+  useEffect(() => {
+    if (stores !== storesIniciales) setFiltros(leerFiltros(stores));
+  }, [stores]);
   const nombresDe = (hilo) => {
     if (!stores || !hilo) return null;
     if (!nombresPorHilo.has(hilo)) {
@@ -301,23 +377,33 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     return nombresPorHilo.get(hilo);
   };
 
-  const items = entradas.map((entrada) => {
+  const items = ordenadas.map(({ entrada, oculta }) => {
     const estado = hilos.current.get(entrada.id);
-    return { entrada, ...estado, nombres: nombresDe(estado?.hilo) };
+    return { entrada, ...estado, oculta, nombres: nombresDe(estado?.hilo) };
   });
 
   const lista = useMemo(
     () => armarLista(items, { ancho, seleccionado: sel, conTablon: board === null, ignorados, guardadas }),
-    [items.map((i) => `${i.entrada.id}:${!!i.hilo}:${i.error ?? ''}`).join(), ancho, sel, board, cambiosIgnorados, stores, guardadas],
+    [items.map((i) => `${i.entrada.id}:${!!i.hilo}:${i.error ?? ''}:${i.oculta ?? ''}`).join(), ancho, sel, board, cambiosIgnorados, stores, guardadas],
   );
   const estadoHilo = hiloId != null ? (hilos.current.get(hiloId) ?? {}) : null;
+  // An open thread has no listing excerpt: its OP's start stands in (the site cuts it at 160 too).
+  const filtraHilo = (hilo) =>
+    coincide(reglas, hilo.asunto, hilo.posts[0]?.lineas.map((l) => l.texto).join(' ').slice(0, 160));
   const nombres = nombresDe(estadoHilo?.hilo);
   const vistaHilo = useMemo(
     () =>
       estadoHilo?.hilo
-        ? armarHilo(estadoHilo.hilo, { ancho, nombres, ignorados, fijada: fijadas.current.has(hiloId), guardada: !!guardadas?.has(hiloId) })
+        ? armarHilo(estadoHilo.hilo, {
+            ancho,
+            nombres,
+            ignorados,
+            fijada: fijadas.current.has(hiloId),
+            guardada: !!guardadas?.has(hiloId),
+            filtrada: !!filtraHilo(estadoHilo.hilo),
+          })
         : null,
-    [estadoHilo?.hilo, ancho, nombres, cambiosIgnorados, fijadas.current.has(hiloId), stores, !!guardadas?.has(hiloId)],
+    [estadoHilo?.hilo, ancho, nombres, cambiosIgnorados, fijadas.current.has(hiloId), stores, !!guardadas?.has(hiloId), reglas],
   );
 
   // Pages of 10. The exact total is known once the last .txt page is loaded.
@@ -401,9 +487,18 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     if (!d) return null;
     if (pantalla === 'respuestas') return armarRespuestas(d, { ancho, seleccionado: selPantalla });
     if (pantalla === 'guardados') return armarGuardados(d, { ancho, seleccionado: selPantalla });
-    if (pantalla === 'buscar') return armarBusqueda(d, { ancho, seleccionado: selPantalla });
+    if (pantalla === 'buscar') {
+      // Out: results in an ignored thread, ignored messages, and what matches a filter.
+      const visibles = d.resultados.filter(
+        (r) =>
+          !ignorados?.hilo(r.hiloId) &&
+          !ignorados?.mensaje(r.hiloId, { id: r.postId }) &&
+          !coincide(reglas, r.asunto, r.fragmento?.replace(/[\u0001\u0002]/g, '')),
+      );
+      return armarBusqueda({ ...d, resultados: visibles, ocultos: d.resultados.length - visibles.length }, { ancho, seleccionado: selPantalla });
+    }
     return armarDocumento(d, { ancho });
-  }, [pantalla, estadoPantalla?.datos, ancho, selPantalla]);
+  }, [pantalla, estadoPantalla?.datos, ancho, selPantalla, cambiosIgnorados, reglas]);
 
   const enHilo = hiloId != null;
   const enPantalla = !enHilo && pantalla != null;
@@ -469,6 +564,69 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     setOffsetPantalla(0);
     setAyuda(false);
     cerrarHilo();
+  };
+
+  // The filters popup (I). Opens with an empty line at the end, ready for a new filter.
+  const abrirFiltros = () => {
+    const lineas = [...filtros, ''];
+    setEditorFiltros({ lineas, fila: lineas.length - 1, col: 0, original: filtros.join('\n'), descartar: false });
+  };
+  const guardarFiltros = (lineas) => {
+    const limpias = lineas.map((l) => l.trim()).filter(Boolean);
+    setFiltros(limpias);
+    setEditorFiltros(null);
+    const conError = compilarFiltros(limpias).errores.size;
+    const resumen = `${limpias.length - conError} ${limpias.length - conError === 1 ? 'filtro' : 'filtros'}${conError ? ` (${conError} con error, sin usar)` : ''}`;
+    if (!stores) return setAviso(`Filtros: ${resumen}. Sin estado local, duran hasta que salgas.`);
+    try {
+      stores('filtros').set('publicaciones', limpias);
+      setAviso(`Filtros guardados: ${resumen}.`);
+    } catch (err) {
+      setAviso(`Filtros: ${resumen}, pero no se pudieron guardar: ${err.message}`);
+    }
+  };
+  const editarFiltros = (input, key) => {
+    const e = editorFiltros;
+    const { lineas, fila, col } = e;
+    const largo = (i) => Array.from(lineas[i] ?? '').length;
+    const poner = (cambios) => setEditorFiltros({ ...e, descartar: false, ...cambios });
+    const conLineas = (nuevas, f, c) => poner({ lineas: nuevas, fila: f, col: c });
+    if (key.escape) {
+      const cambio = lineas.map((l) => l.trim()).filter(Boolean).join('\n') !== e.original;
+      if (cambio && !e.descartar) return setEditorFiltros({ ...e, descartar: true });
+      return setEditorFiltros(null);
+    }
+    if (key.ctrl && (input === 's' || input === 'd')) return guardarFiltros(lineas);
+    if (key.upArrow) return fila > 0 && poner({ fila: fila - 1, col: Math.min(col, largo(fila - 1)) });
+    if (key.downArrow) return fila < lineas.length - 1 && poner({ fila: fila + 1, col: Math.min(col, largo(fila + 1)) });
+    if (key.leftArrow) return col > 0 ? poner({ col: col - 1 }) : fila > 0 && poner({ fila: fila - 1, col: largo(fila - 1) });
+    if (key.rightArrow) return col < largo(fila) ? poner({ col: col + 1 }) : fila < lineas.length - 1 && poner({ fila: fila + 1, col: 0 });
+    if (key.home || (key.ctrl && input === 'a')) return poner({ col: 0 });
+    if (key.end || (key.ctrl && input === 'e')) return poner({ col: largo(fila) });
+    const chars = Array.from(lineas[fila]);
+    if (key.backspace) {
+      if (col > 0) return conLineas(lineas.with(fila, [...chars.slice(0, col - 1), ...chars.slice(col)].join('')), fila, col - 1);
+      if (fila === 0) return;
+      const previa = lineas[fila - 1];
+      return conLineas([...lineas.slice(0, fila - 1), previa + lineas[fila], ...lineas.slice(fila + 1)], fila - 1, Array.from(previa).length);
+    }
+    if (key.delete) {
+      if (col < chars.length) return conLineas(lineas.with(fila, [...chars.slice(0, col), ...chars.slice(col + 1)].join('')), fila, col);
+      if (fila === lineas.length - 1) return;
+      return conLineas([...lineas.slice(0, fila), lineas[fila] + lineas[fila + 1], ...lineas.slice(fila + 2)], fila, col);
+    }
+    // Enter splits the line at the cursor; a paste can bring several lines.
+    const texto = key.return ? '\n' : input && !key.ctrl && !key.meta && !key.tab ? input.replace(/\r\n?/g, '\n') : '';
+    if (!texto) return;
+    const partes = texto.split('\n');
+    const antes = chars.slice(0, col).join('');
+    const despues = chars.slice(col).join('');
+    const nuevas = partes.length === 1 ? [antes + partes[0] + despues] : [antes + partes[0], ...partes.slice(1, -1), partes.at(-1) + despues];
+    conLineas(
+      [...lineas.slice(0, fila), ...nuevas, ...lineas.slice(fila + 1)],
+      fila + nuevas.length - 1,
+      Array.from(partes.at(-1)).length + (partes.length === 1 ? col : 0),
+    );
   };
 
   // Search. Closing it (b, or Esc in the results) goes back to the home page.
@@ -635,10 +793,12 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
 
   useInput((input, key) => {
     if (respuesta) return editarRespuesta(input, key);
+    if (editorFiltros) return editarFiltros(input, key);
     if (aviso) setAviso(null);
     if (busqueda?.foco && !enHilo) return editarBusqueda(input, key);
     if (menu != null) return usarMenu(input, key);
     if (input === 'm') return setMenu(0);
+    if (input === 'I' && !enHilo && !ayuda) return abrirFiltros();
     if (input === 'b' && !enHilo && !ayuda) {
       if (busqueda) return cerrarBusqueda();
       if (pantalla) setPantalla(null);
@@ -751,6 +911,11 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
   }
   if (conCaja && busqueda.foco) estado = `Enter buscar · Esc ${consulta ? 'volver a los resultados' : 'cerrar'} · Ctrl+U borrar`;
   if (menu != null) estado = '↑↓ elegir · Enter abrir · la letra de cada opción · Esc cerrar';
+  if (editorFiltros) {
+    estado = editorFiltros.descartar
+      ? 'Esc de nuevo descarta los cambios · cualquier otra tecla sigue editando'
+      : 'Ctrl+S guardar · Esc cancelar · Enter nueva línea · ↑↓←→ Inicio Fin moverse';
+  }
   if (aviso) estado = aviso;
   if (!cuerpo && contenido) {
     cuerpo = contenido.lineas.slice(off, off + alto).map((l, i) => h`<${Linea} key=${off + i} segs=${l.segs} />`);
@@ -764,5 +929,6 @@ export function App({ cliente, inicio = {}, stores: storesIniciales = null, onSa
     <${Box} flexDirection="column" height=${alto} paddingLeft=${1} overflow="hidden">${cuerpo}<//>
     <${Text} wrap="truncate" color=${aviso ? COLOR.cita : COLOR.tenue}>${estado}<//>
     ${menu != null ? h`<${Menu} items=${itemsMenu} sel=${menu} novedades=${novedades} columnas=${columns} />` : ''}
+    ${editorFiltros ? h`<${EditorFiltros} editor=${editorFiltros} columnas=${columns} filas=${rows} />` : ''}
   <//>`;
 }

@@ -108,15 +108,18 @@ test('i en un mensaje ignorado por su autor avisa que se deshace con I', async (
   cerrar();
 });
 
-test('i en la lista ignora la publicación marcada', async () => {
+test('i en la lista ignora la publicación marcada: va abajo de todo, después de la línea roja', async () => {
   const { teclas, ignorados, cerrar } = await abrir({});
   let frame = await teclas('i');
   assert.deepEqual(ignorados(), ['hilo:588']);
   assert.match(frame, /Ignorada: «Fotos de perfil»/);
-  assert.match(frame, /▶ Fotos de perfil \[TECNOLOGÍA\]\n.*OP .*· ignorado.*\n └─+┘/);
-  frame = await teclas('i');
+  assert.match(frame, /^ ▶ Los que te dicen que tengas hijos/m); // the next one takes its place
+  frame = await teclas(...Array(9).fill('j'));
+  assert.match(frame, /━━ 1 publicación oculta: ignoradas \(i\) o filtradas \(I\) ━+\n\n ▶ Fotos de perfil \[TECNOLOGÍA\]\n.*OP .*· ignorado.*\n └─+┘/);
+  frame = await teclas('i', 'g');
   assert.deepEqual(ignorados(), []);
-  assert.doesNotMatch(frame, /· ignorado/);
+  assert.match(frame, /^ ▶ Fotos de perfil/m); // back in its place
+  assert.doesNotMatch(frame, /· ignorado|━━/);
   cerrar();
 });
 

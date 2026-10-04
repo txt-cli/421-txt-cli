@@ -86,7 +86,7 @@ El token del formulario (CSRF) sale de `/cuenta` y se pide una sola vez por sesi
 | `m` | Menú: Respuestas, Guardados, Normas y Salir (sin sesión: Normas y Entrar) |
 | `s` | En una publicación (o en Guardados): guardarla o sacarla de Guardados |
 | `i` | Ignorar (o dejar de ignorar) la publicación marcada; adentro de una publicación, el mensaje de arriba |
-| `I` | En una publicación: ignorar todos los mensajes del autor del mensaje de arriba |
+| `I` | En una publicación: ignorar todos los mensajes del autor del mensaje de arriba. Afuera: los filtros para ocultar publicaciones |
 | `]` `[` · `n` `p` | Página siguiente / anterior |
 | `a` | Archivo de la sección |
 | `r` | Recargar |
@@ -129,6 +129,10 @@ Respuestas y Guardados no tienen versión texto: se leen del HTML del sitio (`sr
 **Nombres en vez de IDs.** Los IDs anónimos del sitio cambian en cada publicación. Al abrir una, cada ID se muestra con un nombre de usuario inventado con [Faker](https://fakerjs.dev) (`faker.internet.username()`, con nombres en español), así es más fácil seguir quién responde a quién. Se guardan en el store `usuarios` como `<publicación>-<ID>` → nombre, así que son siempre los mismos; dentro de una publicación no se repiten. Se ven en la vista de lista y en la publicación abierta (mientras una publicación carga, la lista muestra el extracto sin nombre).
 
 **Ignorar.** Lo ignorado se ve solo como su cabecera, con el borde gris. `i` en la lista ignora la publicación marcada (queda el título y la cabecera del mensaje inicial, sin respuestas); adentro de una publicación ignora el mensaje de arriba de la pantalla (en el mensaje inicial, la publicación entera, igual que desde la lista). `I` ignora todo lo que escribió el autor de ese mensaje en esa publicación: los IDs son por publicación, así que no alcanza a otras. Las mismas teclas lo deshacen. Se guarda en el store `ignorados` como `hilo:<id>`, `mensaje:<número>` y `usuario:<publicación>-<ID>`.
+
+Las publicaciones ignoradas van abajo de todo de cada página (de a 10), después de una línea roja que avisa cuántas hay. En la búsqueda no aparecen los resultados de publicaciones o mensajes ignorados; arriba dice cuántos quedaron afuera.
+
+**Filtros.** `I` (afuera de una publicación) abre los filtros: una expresión regular por línea, que se busca en el título y en el resumen de cada publicación (el extracto de 160 caracteres del listado), sin distinguir mayúsculas ni acentos (`politica` encuentra "Política"; la ñ sigue siendo ñ). Lo que coincide se trata como ignorado: abajo de todo, solo la cabecera, marcado `· filtrada`; y fuera de la búsqueda (ahí se mira el título y el fragmento). El texto se edita con el cursor (flechas, Inicio, Fin, Supr); una línea que no es una expresión válida queda marcada con ✗ y no se usa hasta corregirla. `Ctrl+S` guarda, `Esc` cancela (pide confirmación si cambiaste algo). Se guardan en el store `filtros`.
 
 ## Tests
 
